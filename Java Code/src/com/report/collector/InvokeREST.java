@@ -27,15 +27,15 @@ import com.report.model.ESData;
 
 public class InvokeREST {
 
-	private String acsHostName = "https://boeing.alfdemo.com";
-	private String elasticSearchHostName = "http://boeing-aps.alfdemo.com:9200";
-	private String elasticSearchIndex = "boeing-test-2";
+	private String acsHostName = "https://source-env.sherrymax.com";
+	private String elasticSearchHostName = "http://target-env.sherrymax.com:9200";
+	private String elasticSearchIndex = "elasticsearch-index";
 	private String writingName = "";
 	private String writingNodeId = "";
 
 	private String getBasicAuthenticationHeader() {
-		String username = "demo";
-		String password = "demo";
+		String username = "hollymolly";
+		String password = "h0llym0lly";
 		String credentials = username + ":" + password;
 		String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
 		return "Basic " + encodedCredentials;
