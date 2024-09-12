@@ -28,42 +28,39 @@ import com.report.model.ESData;
 public class InvokeREST {
 
 	private String acsHostName = "https://source-env.sherrymax.com";
-	private String elasticSearchHostName = "http://target-env.sherrymax.com:9200";
+	
+	private String elasticSearchHostName = "https://my-elastic-cloud.us-east-2.aws.elastic-cloud.com:443";
 	private String elasticSearchIndex = "elasticsearch-index";
+	private String elasticSearchAuthKey = "Authorization";
+	private String elasticSearchAPIValue = "YkRLSzI1RUI3NE5SERYTDBSRFdaT2tLLWEzZzY2dw==";
+	private String elasticSearchAuthValue = "ApiKey "+elasticSearchAPIValue;
+	
 	private String writingName = "";
 	private String writingNodeId = "";
 
-	private String getBasicAuthenticationHeader() {
+	private String getACSAuthenticationHeader() {
 		String username = "hollymolly";
 		String password = "h0llym0lly";
 		String credentials = username + ":" + password;
 		String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
 		return "Basic " + encodedCredentials;
 	}
+	
+	private String getElasticSearchAuthenticationHeader() {
+		return "ApiKey "+this.getElasticSearchAPIValue();
+	}
+	
+	private String getElasticSearchAPIValue() {
+		return this.elasticSearchAPIValue;
+	}
+	
+	
 
 	public static void main(String[] args) {
 		InvokeREST invokeREST = new InvokeREST();
 		ReadFromPostgres readFromPostgres = new ReadFromPostgres();
-
-//    	readFromPostgres.fetchValuesFromActiviti();
-//    	invokeREST.callGET();
 		
-		
-		String url = invokeREST.elasticSearchHostName+"/"+invokeREST.elasticSearchIndex+"/_doc";
-		
-		ESData esData = new ESData();
-		esData.setRevisionType("Revision");
-		esData.setQueue("Q1");
-		esData.setSpecialistQueue("SQ1");
-		esData.setStepName("SN1");
-		esData.setStatus("In Progress");
-		esData.setLastModifiedDate("01-Mar-2024");
-		esData.setDeadlineDate("12-Dec-2024");
-		esData.setDocumentLeader("Dave Jones");
-		
-		invokeREST.callPOST(url, esData);
-
-//		invokeREST.getWritingNodeDetails("9116a122-f195-479d-b2b5-cc6826741348");
+		invokeREST.deleteAllContentFromElasticIndex();
 
 	}
 
@@ -119,6 +116,8 @@ public class InvokeREST {
 			StringEntity input = new StringEntity(requestBody);
 			input.setContentType("application/json");
 			postRequest.setEntity(input);
+			postRequest.setHeader("Authorization", this.getElasticSearchAuthenticationHeader());
+			
 
 			HttpResponse response = httpClient.execute(postRequest);
 			int statusCode = response.getStatusLine().getStatusCode();
@@ -155,7 +154,7 @@ public class InvokeREST {
 		try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
 
 			HttpGet getRequest = new HttpGet(requestURL);
-			getRequest.setHeader("Authorization", this.getBasicAuthenticationHeader());
+			getRequest.setHeader("Authorization", this.getACSAuthenticationHeader());
 
 			HttpResponse response = httpClient.execute(getRequest);
 
@@ -213,6 +212,46 @@ public class InvokeREST {
 			e.printStackTrace();
 		}
 		return writingDetailsMap;
+	}
+	
+	
+	public void deleteAllContentFromElasticIndex() {
+
+		String requestBody = "{ \"query\": {\"match_all\": {} } }";
+		String url = this.elasticSearchHostName+"/"+this.elasticSearchIndex+"/_delete_by_query?conflicts=proceed&pretty";
+
+		try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
+
+			System.out.println(url);
+
+				
+			HttpPost postRequest = new HttpPost(url);
+
+			StringEntity input = new StringEntity(requestBody);
+			input.setContentType("application/json");
+			
+			postRequest.setEntity(input);
+			postRequest.setHeader("Authorization", this.getElasticSearchAuthenticationHeader());
+
+			HttpResponse response = httpClient.execute(postRequest);
+			int statusCode = response.getStatusLine().getStatusCode();
+
+			if ((statusCode != 200) && (statusCode != 201)) {
+				throw new RuntimeException("Failed : HTTP error code : " + response.getStatusLine().getStatusCode());
+			}
+
+			BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
+			String output;
+			System.out.println("Output from Server .... \n");
+			while ((output = br.readLine()) != null) {
+				System.out.println(output);
+			}
+
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
